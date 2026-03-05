@@ -1,0 +1,40 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: Use Node.js
+
+- script: npm ci
+  displayName: Install dependencies
+
+- script: npx playwright install --with-deps chrome
+  displayName: Install Playwright browser
+
+- script: npx playwright test --project=chrome --workers=1
+  displayName: Run all Playwright tests
+  env:
+    MS_EMAIL: $(MS_EMAIL)
+    MS_PASSWORD: $(MS_PASSWORD)
+
+- task: PublishTestResults@2
+  displayName: Publish JUnit test results
+  condition: always()
+  inputs:
+    testResultsFormat: JUnit
+    testResultsFiles: '**/test-results/junit-results.xml'
+    failTaskOnFailedTests: true
+    testRunTitle: 'Playwright Tests'
+
+- task: PublishPipelineArtifact@1
+  displayName: Publish Playwright HTML report
+  condition: always()
+  inputs:
+    targetPath: 'playwright-report'
+    artifact: 'playwright-report'
+    publishLocation: 'pipeline'
